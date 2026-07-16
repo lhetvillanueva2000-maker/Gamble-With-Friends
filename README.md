@@ -305,6 +305,86 @@ deliberately left to the host logic of a later phase via the
 `victim_destroyed` signal. Carryables tossed in are destroyed for nothing:
 the machine only pays for meat.
 
+## Phase 5 — Color Palette, Shaders, & Visual Language
+
+### What's in this phase
+
+| File | Purpose |
+|---|---|
+| `scripts/visual/game_palette.gd` | Every color in the game: UI states + 4 floor atmospheres |
+| `shaders/env_flat.gdshader` | Unlit environment surface: vertex colors + fake half-lambert + grounding gradient |
+| `shaders/neon_tube.gdshader` | Fake-emissive neon sign surface (view-facing hot core) |
+| `shaders/neon_halo.gdshader` | Additive billboard halo — the bloom replacement |
+| `shaders/interact_outline.gdshader` | (upgraded) hover outline, now with a cheap breathing pulse |
+
+### Core UI colors
+
+| Role | Hex | Notes |
+|---|---|---|
+| Panel felt | `#0D141C` | matches Phase 1 HUD panels |
+| Gold trim / titles | `#D9AE35` | brass accent everywhere |
+| Primary text | `#EDF5FF` | |
+| Bank positive | `#7CE08A` | cash green |
+| Bank **debt** | `#FF5F52` | applied automatically by `set_bank_balance()` |
+| Timer normal | `#EDF5FF` | > 60 s |
+| Timer warning | `#F55142` | ≤ 60 s |
+| Timer critical | `#FF2E1F` | ≤ 10 s, blinks against warning at 0.6 s period |
+| Tickets | `#E8B84B` | shop amber |
+
+### Floor atmospheres
+
+| Floor | Mood | Background | Ambient | Surface | Neon 1 | Neon 2 |
+|---|---|---|---|---|---|---|
+| 1 Street Slots | dingy olive + acid | `#101208` | `#3A4224` | `#2E5E3A` | `#B4FF3C` | `#FFD23F` |
+| 2 Card Room | smoky teal + brass | `#071214` | `#1E3B3D` | `#1F4E44` | `#2FE6DE` | `#E8A23D` |
+| 3 High-Roller Pit | bruised violet | `#120818` | `#3A2450` | `#3D2B5E` | `#C44BFF` | `#FF4BA8` |
+| 4 The Vault | blood red + gold | `#160406` | `#4A1214` | `#571C22` | `#FF2E3F` | `#FFC94B` |
+
+`CasinoFloor._apply_floor_palette()` applies these at load: Environment
+background/ambient, ONE shared `env_flat` ShaderMaterial across every
+architectural mesh, and neon tube + halo dressing above each divider —
+so all four floors are palette data over identical geometry.
+
+### The shader kit (and why it's fast)
+
+- **`env_flat`** — `render_mode unshaded`: no light loops, no shadow atlas.
+  Depth is faked three ways for a few ALU ops: baked vertex colors, a
+  half-lambert against a constant direction (no `Light3D`), and a vertical
+  gradient that grounds walls near the floor. The lobby sun's real-time
+  shadow map is now off — nothing in the game renders a shadow pass.
+- **`neon_tube`** — opaque + unshaded; fragments facing the camera whiten
+  into a hot core (`pow(dot(NORMAL, VIEW), k)`), grazing angles keep the
+  hue: reads as emissive with zero glow pipeline. `pulse_speed/depth` make
+  faulty-sign flicker.
+- **`neon_halo`** — the bloom replacement: a camera-billboarded quad
+  (scale-preserving matrix rebuild in `vertex()`), procedural radial
+  gradient, `blend_add`, `depth_draw_never` (halos never occlude, but walls
+  still hide them). WorldEnvironment glow needs downsample/upsample chains
+  that kill mobile WebGL2; this is one flat quad and no texture fetch.
+- **`interact_outline`** — unchanged grow/cull_front shell from Phase 4,
+  plus a one-`sin()` breathing pulse so focus reads on 5.5" screens.
+
+### Keeping the whole scene under 80 draw calls
+
+A draw call ≈ one visible `MeshInstance3D` surface. The budget only works
+if materials are shared and geometry is merged:
+
+1. **One material per category, floor-wide.** All architecture shares one
+   `env_flat` material (set per-floor by script); all neon shares one tube
+   + one halo material. Never call `material_override.duplicate()` per prop.
+2. **Merge the shell.** Each section's walls/floor/ceiling should be ONE
+   mesh authored in Blender with vertex-color zoning — the shader's
+   vertex-color path exists precisely so merging doesn't cost variety.
+3. **MultiMesh the repetition.** Chips, bottles, crates-of-the-same-kind:
+   one `MultiMeshInstance3D` each = 1 draw call for hundreds of instances.
+4. **Occlusion does the rest.** With the Phase 3 S-bend dividers, only ~1
+   section is ever visible. Worst case per section: merged shell (1) +
+   4 tables (4) + 2 neon signs (4) + props via MultiMesh (~4) ≈ **13**;
+   add players (6), carried items (~6), HUD (~10 canvas items batched by
+   the 2D renderer) — comfortably under 80 even mid-transition.
+5. **No shadow maps, no glow, no transparency except halos** — the three
+   biggest mobile GPU cliffs are simply never entered.
+
 ### Running it
 
 Open in **Godot 4.3+**, press Play — `main.tscn` boots into the lobby with

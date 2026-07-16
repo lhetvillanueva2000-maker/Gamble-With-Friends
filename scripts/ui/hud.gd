@@ -13,8 +13,8 @@ signal round_timer_expired
 
 const ROUND_LENGTH_SEC := 300.0
 const TIMER_WARNING_SEC := 60.0
-const TIMER_NORMAL_COLOR := Color(0.93, 0.96, 1.0)
-const TIMER_WARNING_COLOR := Color(0.96, 0.32, 0.26)
+const TIMER_CRITICAL_SEC := 10.0
+const TIMER_BLINK_PERIOD := 0.6
 
 @onready var _bank_value: Label = %BankValue
 @onready var _timer_value: Label = %TimerValue
@@ -62,6 +62,10 @@ func start_round_timer(length_sec: float = ROUND_LENGTH_SEC) -> void:
 
 func set_bank_balance(amount: int) -> void:
 	_bank_value.text = "$%s" % _format_thousands(amount)
+	_bank_value.add_theme_color_override(
+		&"font_color",
+		GamePalette.UI_CASH_DEBT if amount < 0 else GamePalette.UI_CASH_POSITIVE
+	)
 
 
 func set_quota(current: int, target: int) -> void:
@@ -88,10 +92,17 @@ func _render_timer() -> void:
 	var total := int(ceilf(_time_remaining))
 	@warning_ignore("integer_division")
 	_timer_value.text = "%d:%02d" % [total / 60, total % 60]
-	_timer_value.add_theme_color_override(
-		&"font_color",
-		TIMER_WARNING_COLOR if _time_remaining <= TIMER_WARNING_SEC else TIMER_NORMAL_COLOR
-	)
+	_timer_value.add_theme_color_override(&"font_color", _timer_color())
+
+
+## Escalating urgency: normal -> warning at 60 s -> blinking critical at 10 s.
+func _timer_color() -> Color:
+	if _time_remaining <= TIMER_CRITICAL_SEC:
+		var blink_on := fmod(_time_remaining, TIMER_BLINK_PERIOD) < TIMER_BLINK_PERIOD * 0.5
+		return GamePalette.UI_TIMER_CRITICAL if blink_on else GamePalette.UI_TIMER_WARNING
+	if _time_remaining <= TIMER_WARNING_SEC:
+		return GamePalette.UI_TIMER_WARNING
+	return GamePalette.UI_TIMER_NORMAL
 
 
 ## Accessibility: background panel opacity slider (UI scale is applied
