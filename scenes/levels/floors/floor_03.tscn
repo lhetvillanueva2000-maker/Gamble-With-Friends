@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/levels/floors/casino_floor_base.tscn" id="1_base"]
+
+[node name="Floor03" instance=ExtResource("1_base")]
+floor_number = 3
+quota_target = 40000
+min_bet = 100

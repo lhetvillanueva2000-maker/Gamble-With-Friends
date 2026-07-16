@@ -37,9 +37,8 @@ func _ready() -> void:
 	set_quota(0, 10_000)
 	_render_timer()
 	_interact_prompt.hide()
-	# Phase 1 demo: start counting immediately. Later phases start this from
-	# the host's replicated round-start message instead.
-	start_round_timer()
+	# The 5-minute countdown is started by Main the moment the limo departs;
+	# until then the label idles at the full round length.
 
 
 func _process(delta: float) -> void:

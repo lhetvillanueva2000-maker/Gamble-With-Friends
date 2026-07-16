@@ -8,7 +8,7 @@ config_version=5
 
 config/name="Gamble With Friends - Casino Crawler"
 config/description="1-6 player WebRTC P2P casino crawler. Phase 1: Input Map & Mobile-Friendly UI."
-run/main_scene="res://scenes/ui/hud.tscn"
+run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -16,6 +16,7 @@ config/icon="res://icon.svg"
 
 InputSetup="*res://scripts/autoload/input_setup.gd"
 SettingsManager="*res://scripts/autoload/settings_manager.gd"
+FloorStreamer="*res://scripts/autoload/floor_streamer.gd"
 
 [display]
 
@@ -40,6 +41,7 @@ pointing/emulate_mouse_from_touch=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 renderer/rendering_method.web="gl_compatibility"
+occlusion_culling/use_occlusion_culling=true
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_2d=0
 anti_aliasing/quality/msaa_3d=0

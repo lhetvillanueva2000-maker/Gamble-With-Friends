@@ -1,0 +1,50 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/limo.gd" id="1_limo"]
+
+[sub_resource type="BoxMesh" id="body_mesh"]
+size = Vector3(5.5, 1.4, 2.2)
+
+[sub_resource type="BoxShape3D" id="cabin_shape"]
+size = Vector3(4.5, 1.8, 2)
+
+[node name="Limo" type="Node3D"]
+script = ExtResource("1_limo")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("body_mesh")
+
+[node name="Cabin" type="Node3D" parent="."]
+
+[node name="CabinTrigger" type="Area3D" parent="Cabin"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Cabin/CabinTrigger"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("cabin_shape")
+
+[node name="Seats" type="Node3D" parent="Cabin"]
+
+[node name="Seat01" type="Marker3D" parent="Cabin/Seats"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0.6, -0.55)
+
+[node name="Seat02" type="Marker3D" parent="Cabin/Seats"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0.6, 0.55)
+
+[node name="Seat03" type="Marker3D" parent="Cabin/Seats"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 0.6, -0.55)
+
+[node name="Seat04" type="Marker3D" parent="Cabin/Seats"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 0.6, 0.55)
+
+[node name="Seat05" type="Marker3D" parent="Cabin/Seats"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.6, -0.55)
+
+[node name="Seat06" type="Marker3D" parent="Cabin/Seats"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.6, 0.55)
+
+[node name="DriverPrompt" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DriverPrompt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 1, 0)
+shape = SubResource("cabin_shape")

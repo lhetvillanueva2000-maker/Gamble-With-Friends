@@ -152,10 +152,100 @@ force-releases every fed action so movement can never stick "on".
 > `Input.is_action_just_pressed()` — taps consumed by UI buttons still update
 > the global action state, but they never reach `_unhandled_input`.
 
+## Phase 3 — Building Architecture & Flow
+
+### What's in this phase
+
+| File | Purpose |
+|---|---|
+| `scenes/main.tscn` + `scripts/main.gd` | Composition root: `World` (streamed levels) / `UI` (persistent HUD) split, run-flow orchestration |
+| `scripts/autoload/floor_streamer.gd` | Threaded background level streaming + single-resident-level scene swapping |
+| `scripts/levels/game_level.gd` | Base class for streamable levels (spawn-point contract) |
+| `scenes/levels/lobby.tscn` + `lobby.gd` | Hub: cardboard-box spawns, shop truck, Meat Grinder, docked limo |
+| `scenes/levels/limo.tscn` + `limo.gd` | Transition capsule: boarding tracking, load kickoff, departure signal |
+| `scenes/levels/floors/casino_floor_base.tscn` + `casino_floor.gd` | Modular linear floor kit (4 sections, occluder dividers) |
+| `floor_01..04.tscn` | Inherited scenes overriding `floor_number` / `quota_target` / `min_bet` |
+
+### Scene structural trees
+
+```
+Main (Node)                                  — main.gd
+├── World (Node3D)          ← FloorStreamer swaps exactly one level here
+└── UI (CanvasLayer)
+    └── HUD (hud.tscn)      ← persists across every swap
+
+Lobby (Node3D : GameLevel)                   — lobby.gd
+├── WorldEnvironment / Sun (DirectionalLight3D)
+├── Ground (StaticBody3D → CollisionShape3D + MeshInstance3D)
+├── SpawnCrates (Node3D)     — Crate01..06 + Spawn01..06 (Marker3D, "player_spawn")
+├── ShopTruck (Node3D)       — Body + ShopTrigger (Area3D)
+├── MeatGrinder (Node3D)     — Body + Hopper (Marker3D) + DepositTrigger (Area3D)
+└── LimoDock → Limo (limo.tscn instance)
+
+Limo (Node3D)                                — limo.gd
+├── Body (MeshInstance3D)
+├── Cabin
+│   ├── CabinTrigger (Area3D)   — boarding detection
+│   └── Seats — Seat01..06 (Marker3D)
+└── DriverPrompt (Area3D)       — manual-departure interact (later phase)
+
+CasinoFloor (Node3D : GameLevel)             — casino_floor.gd, base for floors 1–4
+├── WorldEnvironment / Ground (StaticBody3D)
+├── Sections (linear along -Z, one section ≈ 26 m)
+│   ├── Section01Arrival  — ArrivalDock + Spawn01..06 ("player_spawn")
+│   ├── Section02Tables   — TableAnchors (4× Marker3D)
+│   ├── Section03Pit      — TableAnchors (3× Marker3D)
+│   └── Section04Exit     — ExitTrigger (Area3D, the exit elevator)
+└── Occluders — Divider01..03 (MeshInstance3D + OccluderInstance3D/BoxOccluder3D)
+```
+
+Floors 1–4 are **inherited scenes** of the base — same kit, different exports:
+Floor 1 "Street Slots" ($5 min / $5k quota) → Floor 2 "Card Room" ($25/$15k)
+→ Floor 3 "High-Roller Pit" ($100/$40k) → Floor 4 "The Vault" ($500/$100k).
+
+### Background streaming & the limo transition
+
+`FloorStreamer` wraps `ResourceLoader.load_threaded_request()` (with
+`use_sub_threads=true` so meshes/textures parse in parallel) and polls
+`load_threaded_get_status()` once per frame, emitting `load_progress` /
+`load_ready` / `load_failed`. The flow:
+
+1. **First player steps into the limo cabin** → `Limo` calls
+   `FloorStreamer.request_load(destination)`. The whole boarding window
+   masks the load.
+2. **Doors close** (`auto_depart_when_full` or `request_departure()`) →
+   `departed` fires → `Main` **starts the 5-minute HUD timer** — the clock
+   locks in at departure, not arrival.
+3. `Main` awaits `wait_until_ready()`, enforces a minimum ride beat
+   (4 s) so instant loads still feel like a ride, then calls `swap_now()`.
+4. `swap_now()` **frees the lobby before instancing the floor** — exactly
+   one level is ever resident — and `level_swapped` drops every node in the
+   `players` group onto the floor's arrival spawns. The exit elevator's
+   trigger streams the lobby back the same way.
+
+### Linear layouts & aggressive occlusion culling
+
+- Floors are **sausages, not open halls**: four ~26 m sections in a straight
+  line along −Z. From any point the player can see at most the current
+  section and one doorway — never the whole floor.
+- Dividers between sections alternate left/right (an S-bend chokepoint), so
+  the sightline through a doorway is broken by the *next* divider. Each
+  divider carries an `OccluderInstance3D` with a `BoxOccluder3D` matching
+  its wall; with `occlusion_culling/use_occlusion_culling=true` Godot's
+  CPU raster culls everything behind it — table meshes, chip stacks, NPCs
+  in sections 2–4 cost nothing while you stand in section 1.
+- Occlusion culling is CPU-side (works with the Compatibility renderer on
+  Android and web). Occluders are separate low-poly boxes, not the visual
+  meshes, so the raster stays cheap.
+- Memory floor: one streamed level resident at a time, ETC2/ASTC compressed
+  textures, and the modular kit means all four floors share the same
+  sub-resources — a floor is layout data, not four unique geometry sets.
+
 ### Running it
 
-Open in **Godot 4.3+**, press Play — the HUD scene is the main scene for this
-phase. `InputSetup` registers all actions at boot, `SettingsManager` then
-overlays saved rebinds and applies mouse/accessibility/touch settings, so any
-later gameplay scene can immediately read `InputSetup.get_move_vector()` and
-the actions above.
+Open in **Godot 4.3+**, press Play — `main.tscn` boots into the lobby with
+the HUD idle at 5:00. `InputSetup` registers all actions, `SettingsManager`
+overlays saved rebinds and applies mouse/accessibility/touch settings, and
+`FloorStreamer` waits for the first limo boarding to start streaming. (No
+player controller exists yet — add any `CharacterBody3D` to the `players`
+group and the spawn/limo/exit flow picks it up.)

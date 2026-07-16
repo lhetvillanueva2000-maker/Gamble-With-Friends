@@ -1,0 +1,135 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/casino_floor.gd" id="1_floor"]
+
+[sub_resource type="Environment" id="env_interior"]
+background_mode = 1
+background_color = Color(0.03, 0.02, 0.04, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.55, 0.42, 0.38, 1)
+ambient_light_energy = 0.8
+
+[sub_resource type="BoxShape3D" id="ground_shape"]
+size = Vector3(14, 1, 108)
+
+[sub_resource type="BoxMesh" id="ground_mesh"]
+size = Vector3(14, 1, 108)
+
+[sub_resource type="BoxMesh" id="divider_mesh"]
+size = Vector3(9, 5, 0.6)
+
+[sub_resource type="BoxOccluder3D" id="divider_occluder"]
+size = Vector3(9, 5, 0.6)
+
+[sub_resource type="BoxShape3D" id="exit_shape"]
+size = Vector3(4, 3, 3)
+
+[node name="CasinoFloor" type="Node3D"]
+script = ExtResource("1_floor")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env_interior")
+
+[node name="Ground" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -39)
+shape = SubResource("ground_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -39)
+mesh = SubResource("ground_mesh")
+
+[node name="Sections" type="Node3D" parent="."]
+
+[node name="Section01Arrival" type="Node3D" parent="Sections"]
+
+[node name="ArrivalDock" type="Marker3D" parent="Sections/Section01Arrival"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+
+[node name="Spawn01" type="Marker3D" parent="Sections/Section01Arrival" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.5, 2)
+
+[node name="Spawn02" type="Marker3D" parent="Sections/Section01Arrival" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 2)
+
+[node name="Spawn03" type="Marker3D" parent="Sections/Section01Arrival" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.5, 2)
+
+[node name="Spawn04" type="Marker3D" parent="Sections/Section01Arrival" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.5, 4)
+
+[node name="Spawn05" type="Marker3D" parent="Sections/Section01Arrival" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 4)
+
+[node name="Spawn06" type="Marker3D" parent="Sections/Section01Arrival" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.5, 4)
+
+[node name="Section02Tables" type="Node3D" parent="Sections"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -26)
+
+[node name="TableAnchors" type="Node3D" parent="Sections/Section02Tables"]
+
+[node name="Table01" type="Marker3D" parent="Sections/Section02Tables/TableAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0, -4)
+
+[node name="Table02" type="Marker3D" parent="Sections/Section02Tables/TableAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0, -4)
+
+[node name="Table03" type="Marker3D" parent="Sections/Section02Tables/TableAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0, 4)
+
+[node name="Table04" type="Marker3D" parent="Sections/Section02Tables/TableAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0, 4)
+
+[node name="Section03Pit" type="Node3D" parent="Sections"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -52)
+
+[node name="TableAnchors" type="Node3D" parent="Sections/Section03Pit"]
+
+[node name="Table01" type="Marker3D" parent="Sections/Section03Pit/TableAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0, 0)
+
+[node name="Table02" type="Marker3D" parent="Sections/Section03Pit/TableAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0, 0)
+
+[node name="Table03" type="Marker3D" parent="Sections/Section03Pit/TableAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
+
+[node name="Section04Exit" type="Node3D" parent="Sections"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -78)
+
+[node name="ExitTrigger" type="Area3D" parent="Sections/Section04Exit"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Sections/Section04Exit/ExitTrigger"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -8)
+shape = SubResource("exit_shape")
+
+[node name="Occluders" type="Node3D" parent="."]
+
+[node name="Divider01" type="Node3D" parent="Occluders"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 2.5, -13)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Occluders/Divider01"]
+mesh = SubResource("divider_mesh")
+
+[node name="OccluderInstance3D" type="OccluderInstance3D" parent="Occluders/Divider01"]
+occluder = SubResource("divider_occluder")
+
+[node name="Divider02" type="Node3D" parent="Occluders"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 2.5, -39)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Occluders/Divider02"]
+mesh = SubResource("divider_mesh")
+
+[node name="OccluderInstance3D" type="OccluderInstance3D" parent="Occluders/Divider02"]
+occluder = SubResource("divider_occluder")
+
+[node name="Divider03" type="Node3D" parent="Occluders"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 2.5, -65)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Occluders/Divider03"]
+mesh = SubResource("divider_mesh")
+
+[node name="OccluderInstance3D" type="OccluderInstance3D" parent="Occluders/Divider03"]
+occluder = SubResource("divider_occluder")

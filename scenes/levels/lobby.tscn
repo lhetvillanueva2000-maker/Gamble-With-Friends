@@ -1,0 +1,130 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/lobby.gd" id="1_lobby"]
+[ext_resource type="PackedScene" path="res://scenes/levels/limo.tscn" id="2_limo"]
+
+[sub_resource type="Environment" id="env_day"]
+background_mode = 1
+background_color = Color(0.24, 0.27, 0.33, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.7, 0.72, 0.78, 1)
+ambient_light_energy = 0.6
+
+[sub_resource type="BoxShape3D" id="ground_shape"]
+size = Vector3(60, 1, 60)
+
+[sub_resource type="BoxMesh" id="ground_mesh"]
+size = Vector3(60, 1, 60)
+
+[sub_resource type="BoxMesh" id="crate_mesh"]
+size = Vector3(1.2, 1.2, 1.2)
+
+[sub_resource type="BoxMesh" id="truck_mesh"]
+size = Vector3(6, 3, 2.6)
+
+[sub_resource type="CylinderMesh" id="grinder_mesh"]
+top_radius = 1.4
+bottom_radius = 1.0
+height = 2.4
+
+[sub_resource type="BoxShape3D" id="trigger_shape"]
+size = Vector3(4, 2.5, 4)
+
+[node name="Lobby" type="Node3D"]
+script = ExtResource("1_lobby")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env_day")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.8192, -0.4699, 0.329, 0, 0.5736, 0.8192, -0.5736, -0.6711, 0.4699, 0, 12, 0)
+shadow_enabled = true
+
+[node name="Ground" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+shape = SubResource("ground_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+mesh = SubResource("ground_mesh")
+
+[node name="SpawnCrates" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, -2)
+
+[node name="Crate01" type="MeshInstance3D" parent="SpawnCrates"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+mesh = SubResource("crate_mesh")
+
+[node name="Spawn01" type="Marker3D" parent="SpawnCrates" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+
+[node name="Crate02" type="MeshInstance3D" parent="SpawnCrates"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.6, 0.8)
+mesh = SubResource("crate_mesh")
+
+[node name="Spawn02" type="Marker3D" parent="SpawnCrates" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.7, 0.8)
+
+[node name="Crate03" type="MeshInstance3D" parent="SpawnCrates"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.6, -0.4)
+mesh = SubResource("crate_mesh")
+
+[node name="Spawn03" type="Marker3D" parent="SpawnCrates" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.7, -0.4)
+
+[node name="Crate04" type="MeshInstance3D" parent="SpawnCrates"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.6, 2.2)
+mesh = SubResource("crate_mesh")
+
+[node name="Spawn04" type="Marker3D" parent="SpawnCrates" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.7, 2.2)
+
+[node name="Crate05" type="MeshInstance3D" parent="SpawnCrates"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0.6, 2.8)
+mesh = SubResource("crate_mesh")
+
+[node name="Spawn05" type="Marker3D" parent="SpawnCrates" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 0.7, 2.8)
+
+[node name="Crate06" type="MeshInstance3D" parent="SpawnCrates"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.6, 1.6)
+mesh = SubResource("crate_mesh")
+
+[node name="Spawn06" type="Marker3D" parent="SpawnCrates" groups=["player_spawn"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.7, 1.6)
+
+[node name="ShopTruck" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, -8)
+
+[node name="Body" type="MeshInstance3D" parent="ShopTruck"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("truck_mesh")
+
+[node name="ShopTrigger" type="Area3D" parent="ShopTruck"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ShopTruck/ShopTrigger"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 3.2)
+shape = SubResource("trigger_shape")
+
+[node name="MeatGrinder" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -6)
+
+[node name="Body" type="MeshInstance3D" parent="MeatGrinder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+mesh = SubResource("grinder_mesh")
+
+[node name="Hopper" type="Marker3D" parent="MeatGrinder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 0)
+
+[node name="DepositTrigger" type="Area3D" parent="MeatGrinder"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeatGrinder/DepositTrigger"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 2.6)
+shape = SubResource("trigger_shape")
+
+[node name="LimoDock" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 14)
+
+[node name="Limo" parent="LimoDock" instance=ExtResource("2_limo")]
