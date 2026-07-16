@@ -1,0 +1,147 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud"]
+[ext_resource type="Script" path="res://scripts/ui/safe_area_container.gd" id="2_safe"]
+
+[sub_resource type="StyleBoxFlat" id="panel_felt"]
+content_margin_left = 20.0
+content_margin_top = 10.0
+content_margin_right = 20.0
+content_margin_bottom = 10.0
+bg_color = Color(0.05, 0.08, 0.11, 0.82)
+border_width_bottom = 3
+border_color = Color(0.85, 0.68, 0.21, 0.9)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
+
+[node name="HUD" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="SafeArea" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_safe")
+
+[node name="Content" type="Control" parent="SafeArea"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TopBar" type="HBoxContainer" parent="SafeArea/Content"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="BankPanel" type="PanelContainer" parent="SafeArea/Content/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("panel_felt")
+
+[node name="BankRow" type="HBoxContainer" parent="SafeArea/Content/TopBar/BankPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BankTitle" type="Label" parent="SafeArea/Content/TopBar/BankPanel/BankRow"]
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(0.85, 0.68, 0.21, 1)
+theme_override_font_sizes/font_size = 22
+text = "BANK"
+
+[node name="BankValue" type="Label" parent="SafeArea/Content/TopBar/BankPanel/BankRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.96, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.75)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 34
+text = "$0"
+
+[node name="SpacerLeft" type="Control" parent="SafeArea/Content/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="TimerPanel" type="PanelContainer" parent="SafeArea/Content/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("panel_felt")
+
+[node name="TimerValue" type="Label" parent="SafeArea/Content/TopBar/TimerPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.96, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.75)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 44
+text = "5:00"
+horizontal_alignment = 1
+
+[node name="SpacerRight" type="Control" parent="SafeArea/Content/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="QuotaPanel" type="PanelContainer" parent="SafeArea/Content/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("panel_felt")
+
+[node name="QuotaRow" type="HBoxContainer" parent="SafeArea/Content/TopBar/QuotaPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="QuotaTitle" type="Label" parent="SafeArea/Content/TopBar/QuotaPanel/QuotaRow"]
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(0.85, 0.68, 0.21, 1)
+theme_override_font_sizes/font_size = 22
+text = "QUOTA"
+
+[node name="QuotaValue" type="Label" parent="SafeArea/Content/TopBar/QuotaPanel/QuotaRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.96, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.75)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 34
+text = "$0 / $10,000"
+
+[node name="InteractPrompt" type="Label" parent="SafeArea/Content"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -110.0
+offset_right = 220.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.93, 0.96, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 30
+text = "[E]  INTERACT"
+horizontal_alignment = 1
+vertical_alignment = 1
