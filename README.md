@@ -95,9 +95,67 @@ Three cooperating layers:
   comfortable physical reading size. Everything re-flows automatically
   because the layout is pure containers and anchors — no absolute positions.
 
+## Phase 2 — Customizable Controls & Settings Save System
+
+### What's in this phase
+
+| File | Purpose |
+|---|---|
+| `scripts/autoload/settings_manager.gd` | ConfigFile-backed persistence to `user://settings.cfg` with corruption quarantine, key rebinding, mouse/accessibility/touch settings |
+| `scripts/ui/virtual_joystick.gd` | Floating-origin thumbstick that feeds the `move_*` actions with analog strength |
+| `scripts/ui/touch_controls_overlay.gd` | Code-built overlay (joystick + MENU/PICK UP/INTERACT buttons) with AUTO/ALWAYS_ON/OFF visibility |
+
+### Persistence model
+
+- `user://settings.cfg` resolves to app-private storage on Android and the
+  IndexedDB-backed filesystem on HTML5 — one path, every platform. Saves are
+  **debounced** (max one disk write per 0.4 s while sliders drag) and force-
+  flushed on `NOTIFICATION_APPLICATION_PAUSED` / `FOCUS_OUT` / `WM_CLOSE_REQUEST`,
+  because mobile OSes kill backgrounded apps without warning.
+- **Corruption handling:** a file that fails `ConfigFile.load()` is renamed to
+  `settings.corrupt.cfg` and defaults are restored — the game never fails to
+  boot over a bad config. Every value read back is type-checked and clamped
+  (`_read_float/_read_int/_read_bool`), so a hand-edited file can't inject
+  bad state. Only primitives are written — rebinds are stored as physical
+  keycodes, never serialized `InputEventKey` objects (deserializing objects
+  from a user-editable file is an injection vector).
+
+### Settings surface
+
+| Section | Keys | Applied via |
+|---|---|---|
+| `[bindings]` | one physical keycode per rebound action | `InputMap` override on top of `InputSetup` defaults |
+| `[mouse]` | `sensitivity` (0.1–5), `raw_input`, `confine_to_window` | `MouseLook` multiplier, `Input.use_accumulated_input`, `MOUSE_MODE_CONFINED` for the free cursor (no-op on web) |
+| `[accessibility]` | `ui_scale` (0.5–1.5), `panel_opacity` (0–1) | `content_scale_factor` (multiplied with the small-screen boost, now owned by SettingsManager), shared HUD panel StyleBox alpha |
+| `[touch]` | `controls_mode` (AUTO / ALWAYS_ON / OFF) | `TouchControlsOverlay` visibility |
+
+### Key rebinding flow
+
+Controls menu calls `SettingsManager.begin_key_capture(&"action_pickup")`,
+the next keypress is bound (Escape cancels) and reported via
+`key_capture_finished(action, success)`. Labels come from
+`get_action_key_label()`, which translates physical keycodes through the
+player's real layout. `reset_bindings()` restores Phase 1 defaults.
+
+### Touch fallback (KBM disconnected)
+
+In AUTO mode the overlay appears on the first touch and hides the moment a
+physical key or a *real* mouse is used — touch-synthesized mouse events are
+filtered out by `device == InputEvent.DEVICE_ID_EMULATION`. So when a
+Bluetooth keyboard/mouse drops off an Android tablet mid-run, the next
+screen tap brings up thumb controls with no menu digging. The joystick and
+buttons drive the real InputMap actions (`Input.action_press` with analog
+strength), so gameplay code cannot tell touch from KBM. Hiding the overlay
+force-releases every fed action so movement can never stick "on".
+
+> Gameplay note: read `interact` in `_unhandled_input()`, not by polling
+> `Input.is_action_just_pressed()` — taps consumed by UI buttons still update
+> the global action state, but they never reach `_unhandled_input`.
+
 ### Running it
 
 Open in **Godot 4.3+**, press Play — the HUD scene is the main scene for this
-phase. `InputSetup` registers all actions at boot, so any later gameplay
-scene can immediately read `InputSetup.get_move_vector()` and the actions
-above.
+phase. `InputSetup` registers all actions at boot, `SettingsManager` then
+overlays saved rebinds and applies mouse/accessibility/touch settings, so any
+later gameplay scene can immediately read `InputSetup.get_move_vector()` and
+the actions above.

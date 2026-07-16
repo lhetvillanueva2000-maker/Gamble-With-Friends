@@ -16,22 +16,23 @@ const TIMER_WARNING_SEC := 60.0
 const TIMER_NORMAL_COLOR := Color(0.93, 0.96, 1.0)
 const TIMER_WARNING_COLOR := Color(0.96, 0.32, 0.26)
 
-## Physical screens smaller than this (diagonal inches) get a readability
-## boost on top of the canvas_items stretch scale.
-const SMALL_SCREEN_DIAGONAL_IN := 6.0
-const SMALL_SCREEN_UI_BOOST := 1.15
-
 @onready var _bank_value: Label = %BankValue
 @onready var _timer_value: Label = %TimerValue
 @onready var _quota_value: Label = %QuotaValue
 @onready var _interact_prompt: Label = %InteractPrompt
+
+## All three top-bar panels share this one StyleBoxFlat sub-resource, so a
+## single write restyles bank, timer, and quota together.
+@onready var _panel_style: StyleBoxFlat = \
+	$SafeArea/Content/TopBar/BankPanel.get_theme_stylebox(&"panel") as StyleBoxFlat
 
 var _time_remaining := ROUND_LENGTH_SEC
 var _timer_running := false
 
 
 func _ready() -> void:
-	_apply_small_screen_boost()
+	SettingsManager.accessibility_settings_changed.connect(_apply_panel_opacity)
+	_apply_panel_opacity()
 	set_bank_balance(0)
 	set_quota(0, 10_000)
 	_render_timer()
@@ -93,23 +94,13 @@ func _render_timer() -> void:
 	)
 
 
-## On a 5.5" phone the canvas_items stretch already shrinks the 1080p layout
-## to fit, which can push 24 px labels below comfortable reading size. If the
-## physical panel is small, scale the whole content up ~15% — everything
-## re-flows because the layout is pure containers/anchors.
-func _apply_small_screen_boost() -> void:
-	if not OS.has_feature("mobile") and not _is_mobile_browser():
-		return
-	var dpi := DisplayServer.screen_get_dpi()
-	if dpi <= 0:
-		return
-	var diagonal_in := Vector2(DisplayServer.screen_get_size()).length() / float(dpi)
-	if diagonal_in > 0.0 and diagonal_in < SMALL_SCREEN_DIAGONAL_IN:
-		get_window().content_scale_factor = SMALL_SCREEN_UI_BOOST
-
-
-func _is_mobile_browser() -> bool:
-	return OS.has_feature("web_android") or OS.has_feature("web_ios")
+## Accessibility: background panel opacity slider (UI scale is applied
+## globally by SettingsManager via content_scale_factor — nothing to do
+## here, containers re-flow on their own).
+func _apply_panel_opacity() -> void:
+	var color := _panel_style.bg_color
+	color.a = SettingsManager.panel_opacity
+	_panel_style.bg_color = color
 
 
 static func _format_thousands(value: int) -> String:

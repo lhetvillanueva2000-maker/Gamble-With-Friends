@@ -41,11 +41,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	var motion: Vector2 = event.relative * (REFERENCE_HEIGHT_PX / window_height)
 	motion = motion.limit_length(MAX_EVENT_TRAVEL_PX)
 
-	yaw_node.rotate_y(deg_to_rad(-motion.x * sensitivity_deg_per_px))
+	# Player-tunable multiplier from the settings menu (0.1x–5x).
+	var sensitivity := sensitivity_deg_per_px * SettingsManager.mouse_sensitivity
+
+	yaw_node.rotate_y(deg_to_rad(-motion.x * sensitivity))
 
 	var pitch_limit := deg_to_rad(pitch_limit_deg)
 	pitch_node.rotation.x = clampf(
-		pitch_node.rotation.x - deg_to_rad(motion.y * sensitivity_deg_per_px),
+		pitch_node.rotation.x - deg_to_rad(motion.y * sensitivity),
 		-pitch_limit,
 		pitch_limit
 	)

@@ -71,7 +71,9 @@ func _ensure_action(action: StringName) -> void:
 	if InputMap.has_action(action):
 		InputMap.action_erase_events(action)
 	else:
-		InputMap.add_action(action)
+		# 0.2 deadzone: keys are digital anyway, but the virtual joystick
+		# feeds these actions with analog strength (Phase 2).
+		InputMap.add_action(action, 0.2)
 
 
 ## WASD/arrow movement as a normalized 2D vector (x = strafe, y = forward).
@@ -92,7 +94,20 @@ func request_mouse_capture() -> void:
 ## capture so a stray click doesn't re-lock while a menu is open.
 func release_mouse() -> void:
 	_want_capture = false
-	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	Input.set_mouse_mode(_free_mouse_mode())
+
+
+## Which mode a *free* cursor uses. CONFINED keeps the visible cursor inside
+## the window (a fast drag toward a bet button can't slide onto a second
+## monitor); the browser owns the cursor outside pointer lock, so web always
+## gets plain VISIBLE.
+func _free_mouse_mode() -> Input.MouseMode:
+	if _is_web:
+		return Input.MOUSE_MODE_VISIBLE
+	var settings: Node = get_node_or_null(^"/root/SettingsManager")
+	if settings != null and settings.mouse_confine_to_window:
+		return Input.MOUSE_MODE_CONFINED
+	return Input.MOUSE_MODE_VISIBLE
 
 
 func is_mouse_captured() -> bool:
