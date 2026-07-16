@@ -1,7 +1,12 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/lobby.gd" id="1_lobby"]
 [ext_resource type="PackedScene" path="res://scenes/levels/limo.tscn" id="2_limo"]
+[ext_resource type="Script" path="res://scripts/shop/shop_truck.gd" id="3_shop"]
+[ext_resource type="Script" path="res://scripts/shop/shop_bin.gd" id="4_bin"]
+[ext_resource type="Script" path="res://scripts/interaction/interactable.gd" id="5_zone"]
+[ext_resource type="Script" path="res://scripts/levels/meat_grinder.gd" id="6_grinder"]
+[ext_resource type="PackedScene" path="res://scenes/items/shop_crate.tscn" id="7_crate"]
 
 [sub_resource type="Environment" id="env_day"]
 background_mode = 1
@@ -29,6 +34,24 @@ height = 2.4
 
 [sub_resource type="BoxShape3D" id="trigger_shape"]
 size = Vector3(4, 2.5, 4)
+
+[sub_resource type="BoxShape3D" id="bin_shape"]
+size = Vector3(1.6, 1.2, 1.6)
+
+[sub_resource type="BoxMesh" id="bin_mesh"]
+size = Vector3(1.6, 0.9, 1.6)
+
+[sub_resource type="BoxShape3D" id="button_shape"]
+size = Vector3(0.45, 0.45, 0.45)
+
+[sub_resource type="BoxMesh" id="button_mesh"]
+size = Vector3(0.35, 0.35, 0.35)
+
+[sub_resource type="BoxMesh" id="drawer_mesh"]
+size = Vector3(1.2, 0.5, 0.8)
+
+[sub_resource type="BoxShape3D" id="entry_shape"]
+size = Vector3(1.6, 1, 1.6)
 
 [node name="Lobby" type="Node3D"]
 script = ExtResource("1_lobby")
@@ -97,6 +120,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.7, 1.6)
 
 [node name="ShopTruck" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, -8)
+script = ExtResource("3_shop")
+catalog = Array[PackedScene]([ExtResource("7_crate")])
 
 [node name="Body" type="MeshInstance3D" parent="ShopTruck"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
@@ -108,12 +133,69 @@ mesh = SubResource("truck_mesh")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 3.2)
 shape = SubResource("trigger_shape")
 
+[node name="Shelf" type="Node3D" parent="ShopTruck"]
+
+[node name="StockAnchors" type="Node3D" parent="ShopTruck/Shelf"]
+
+[node name="Anchor01" type="Marker3D" parent="ShopTruck/Shelf/StockAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 3.3, 0.8)
+
+[node name="Anchor02" type="Marker3D" parent="ShopTruck/Shelf/StockAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7, 3.3, 0.8)
+
+[node name="Anchor03" type="Marker3D" parent="ShopTruck/Shelf/StockAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 3.3, 0.8)
+
+[node name="Anchor04" type="Marker3D" parent="ShopTruck/Shelf/StockAnchors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.3, 0.8)
+
+[node name="Bin" type="Area3D" parent="ShopTruck"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6, 0, 1.8)
+script = ExtResource("4_bin")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ShopTruck/Bin"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("bin_shape")
+
+[node name="BinMesh" type="MeshInstance3D" parent="ShopTruck/Bin"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+mesh = SubResource("bin_mesh")
+
+[node name="BuyButton" type="Area3D" parent="ShopTruck"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2, 1.2, 1.4)
+script = ExtResource("5_zone")
+prompt_text = "BUY BIN CONTENTS"
+highlight_root = NodePath("ButtonMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ShopTruck/BuyButton"]
+shape = SubResource("button_shape")
+
+[node name="ButtonMesh" type="MeshInstance3D" parent="ShopTruck/BuyButton"]
+mesh = SubResource("button_mesh")
+
+[node name="RetrievalDrawer" type="Node3D" parent="ShopTruck"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.4, 0, 1.6)
+
+[node name="DrawerMesh" type="MeshInstance3D" parent="ShopTruck/RetrievalDrawer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+mesh = SubResource("drawer_mesh")
+
+[node name="DropPoint" type="Marker3D" parent="ShopTruck/RetrievalDrawer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
 [node name="MeatGrinder" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -6)
+script = ExtResource("6_grinder")
 
 [node name="Body" type="MeshInstance3D" parent="MeatGrinder"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
 mesh = SubResource("grinder_mesh")
+
+[node name="EntryTrigger" type="Area3D" parent="MeatGrinder"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeatGrinder/EntryTrigger"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+shape = SubResource("entry_shape")
 
 [node name="Hopper" type="Marker3D" parent="MeatGrinder"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 0)

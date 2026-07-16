@@ -25,6 +25,8 @@ const MIN_RIDE_SEC := 4.0
 
 
 func _ready() -> void:
+	Economy.cash_changed.connect(_on_cash_changed)
+	_hud.set_bank_balance(Economy.cash)
 	FloorStreamer.register_level_container(_world)
 	FloorStreamer.level_swapped.connect(_on_level_swapped)
 	# The lobby is deliberately tiny (a parking lot of boxes), so a
@@ -63,6 +65,10 @@ func _on_limo_departed(destination_path: String) -> void:
 		await get_tree().create_timer(MIN_RIDE_SEC - elapsed).timeout
 
 	FloorStreamer.swap_now(destination_path)
+
+
+func _on_cash_changed(balance: int) -> void:
+	_hud.set_bank_balance(balance)
 
 
 func _on_floor_exit_requested() -> void:

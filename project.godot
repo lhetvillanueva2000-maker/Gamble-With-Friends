@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 InputSetup="*res://scripts/autoload/input_setup.gd"
 SettingsManager="*res://scripts/autoload/settings_manager.gd"
 FloorStreamer="*res://scripts/autoload/floor_streamer.gd"
+Economy="*res://scripts/autoload/economy.gd"
 
 [display]
 

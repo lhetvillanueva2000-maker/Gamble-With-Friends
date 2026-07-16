@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/shop/shop_item.gd" id="1_item"]
+[ext_resource type="Script" path="res://scripts/interaction/interactable.gd" id="2_zone"]
+
+[sub_resource type="BoxShape3D" id="crate_shape"]
+size = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="BoxMesh" id="crate_mesh"]
+size = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="BoxShape3D" id="zone_shape"]
+size = Vector3(0.75, 0.75, 0.75)
+
+[node name="ShopCrate" type="RigidBody3D"]
+mass = 2.0
+script = ExtResource("1_item")
+display_name = "CRATE"
+price = 15
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("crate_shape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("crate_mesh")
+
+[node name="PickupZone" type="Area3D" parent="."]
+script = ExtResource("2_zone")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PickupZone"]
+shape = SubResource("zone_shape")

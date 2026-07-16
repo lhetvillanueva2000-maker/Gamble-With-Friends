@@ -71,8 +71,9 @@ func set_quota(current: int, target: int) -> void:
 	]
 
 
-func show_interact_prompt(action_text: String = "INTERACT") -> void:
-	_interact_prompt.text = "[E]  %s" % action_text
+## key_label reflects live rebinds ("E", "F", "LMB"...) via the Interactor.
+func show_interact_prompt(action_text: String = "INTERACT", key_label: String = "E") -> void:
+	_interact_prompt.text = "[%s]  %s" % [key_label, action_text]
 	_interact_prompt.show()
 
 

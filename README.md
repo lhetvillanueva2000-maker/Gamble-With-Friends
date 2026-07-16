@@ -241,6 +241,70 @@ Floor 1 "Street Slots" ($5 min / $5k quota) → Floor 2 "Card Room" ($25/$15k)
   textures, and the modular kit means all four floors share the same
   sub-resources — a floor is layout data, not four unique geometry sets.
 
+## Phase 4 — Environmental Details & Interactions
+
+### What's in this phase
+
+| File | Purpose |
+|---|---|
+| `scripts/interaction/interactable.gd` | Reusable Area3D interaction target: focus signals, action binding, shared outline highlight |
+| `scripts/interaction/interactor.gd` | Camera-mounted RayCast3D probe: focusing, HUD prompt, input routing, hand context |
+| `scripts/interaction/carryable.gd` + `player_hand.gd` | Physical carry pipeline: freeze/reparent pickup, drop, aim-directed throw |
+| `shaders/interact_outline.gdshader` | One-pass grow/cull_front hover outline (Compatibility-safe) |
+| `scripts/autoload/economy.gd` | Shared crew wallets: run cash (quota bank) + shop tickets |
+| `scripts/shop/shop_item.gd`, `shop_bin.gd`, `shop_truck.gd` + `scenes/items/shop_crate.tscn` | The physical truck shopping loop |
+| `scripts/levels/meat_grinder.gd` | The Lobby Body Shredder |
+
+### The interaction pipeline
+
+`Interactor` (a RayCast3D under the player camera, areas-only) focuses
+whatever `Interactable` the crosshair rests on. Focus applies a **single
+shared ShaderMaterial** as `material_overlay` to every mesh under the
+target's `highlight_root` — the shader grows vertices along normals with
+front-face culling, giving a shell outline in one pass with no viewports or
+post-processing. Focus also drives the Phase 1 HUD prompt through the `hud`
+group, with the key label resolved through Phase 2's rebind-aware
+`get_action_key_label()`.
+
+Each `Interactable` declares which InputMap `action` triggers it
+(`interact`/LMB for buttons and panels, `action_pickup`/E for grabs), and
+`interact()` passes the Interactor as context — targets reach the player
+via `interactor.player` and their carry slot via `interactor.hand`.
+`Carryable` (RigidBody3D) + `PlayerHand` complete the pipeline: pickup
+freezes physics, mutes collision, and reparents into the hand; E drops
+gently, LMB throws along the camera aim with a mass-scaled impulse. Since
+everything runs on InputMap actions, the Phase 2 touch overlay drives all
+of it with zero extra code.
+
+### The truck shopping system
+
+Fully physical, no menus: grab a `ShopItem` off the shelf anchors, throw it
+into the **Bin** (an Area3D continuously tracking which ShopItems rest
+inside), then press the physical **Buy button** (an `Interactable`).
+Checkout prices the bin at that instant, calls
+`Economy.try_spend_tickets()` (atomic check-and-deduct), and on success
+marks the items `purchased` and respawns them fanned out of the
+**Retrieval Drawer** — from where the crew must carry them to the limo by
+hand. Insufficient tickets emits `purchase_failed` and changes nothing.
+
+**Penalty rule:** when the limo departs, anything still in the truck's
+custody is lost. Unpurchased stock was never charged and just despawns;
+*purchased* items left in the bin or drawer are **forfeited — the tickets
+stay spent** (an optional `forfeit_refund_ratio` export can grant a partial
+salvage refund; default 0 = full loss). Items in someone's hand are exempt:
+they're leaving with the player. Buy it, carry it, or lose it.
+
+### The Meat Grinder
+
+Stepping (or being thrown) into the hopper's `EntryTrigger` starts the
+grind: the avatar is pinned at the hopper and its processing disabled, the
+machine chews for `grind_duration`, then `Economy.deposit_cash(cash_per_body)`
+pays the shared bank, `cash_extracted` fires, and the physical avatar is
+freed from the tree — gone for the run. Respawn/spectator policy is
+deliberately left to the host logic of a later phase via the
+`victim_destroyed` signal. Carryables tossed in are destroyed for nothing:
+the machine only pays for meat.
+
 ### Running it
 
 Open in **Godot 4.3+**, press Play — `main.tscn` boots into the lobby with
