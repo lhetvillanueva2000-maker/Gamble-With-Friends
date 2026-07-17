@@ -55,14 +55,17 @@ func _on_level_swapped(_path: String, level: Node) -> void:
 		)
 		_hud.set_quota(Economy.cash, _quota_target)
 		casino_floor.exit_requested.connect(_on_floor_exit_requested)
+		GameManager.set_state(GameManager.GameState.ON_FLOOR)
 	else:
 		_quota_target = 0
+		GameManager.set_state(GameManager.GameState.LOBBY)
 
 
 func _on_limo_departed(destination_path: String) -> void:
 	# The 5-minute run is locked in the moment the doors close — riding,
 	# not walking the floor, is when the clock starts. (Host-replicated in
 	# the WebRTC phases; every peer starts from the same signal.)
+	GameManager.set_state(GameManager.GameState.RIDING)
 	_hud.start_round_timer()
 
 	var ride_start_ms := Time.get_ticks_msec()

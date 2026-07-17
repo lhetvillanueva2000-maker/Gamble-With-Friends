@@ -604,6 +604,31 @@ deterministic sim is.** Physics stays 60 Hz on every device, gameplay
 triggers never sleep, TableRng is never used for cosmetics, the bet
 pipeline is never batched or reordered, and money never touches a float.
 
+## Phase 9 — Project Integration, Build Compilation, & Release Packaging
+
+Full guide: **[docs/BUILD_AND_RELEASE.md](docs/BUILD_AND_RELEASE.md)** —
+autoload architecture & boot flow, step-by-step local Android/Web
+compilation, COOP/COEP hosting configs, the ADB + mobile-browser
+debugging pipeline, and the per-release checklist.
+
+| File | Purpose |
+|---|---|
+| `scripts/autoload/game_manager.gd` | Final coordinator (loads last): device performance profile + coarse game state |
+| `scenes/boot/boot_splash.tscn` + `scripts/boot/boot_splash.gd` | New entry point: profile detection, threaded precache of main+lobby, hand-off to Main |
+| `.github/workflows/android-release.yml` | (upgraded) falls back to an ephemeral **debug-signed APK** when release secrets are absent — run it manually from the Actions tab to get an installable build with zero setup |
+| `docs/BUILD_AND_RELEASE.md` | The Phase 9 production guide |
+
+Low-end integration: `GameManager.detect_device_profile()` (cores +
+physical RAM heuristic) runs on the splash before anything visual spawns;
+`CasinoFloor` reads it and drops the additive neon halos on low-end
+mobile — the first overdraw to go.
+
+**Getting an APK without signing setup:** GitHub → Actions →
+*Android Build* → *Run workflow* (this branch) → download the
+`android-apk` artifact. Debug-signed, installable via
+`adb install -r`; store-ready builds need the keystore secrets from the
+CI table above.
+
 ### Running it
 
 Open in **Godot 4.3+**, press Play — `main.tscn` boots into the lobby with

@@ -78,6 +78,11 @@ func _decorate_neon(palette: Dictionary) -> void:
 	var halo_mesh := QuadMesh.new()
 	halo_mesh.size = Vector2(7.5, 2.4)
 
+	# Low-end profile: keep the tubes (opaque, near-free) but drop the
+	# additive halos — transparent overdraw is the first thing weak mobile
+	# GPUs choke on.
+	var spawn_halos := not GameManager.is_low_end()
+
 	for divider: Node3D in $Occluders.get_children():
 		var tube := MeshInstance3D.new()
 		tube.mesh = tube_mesh
@@ -85,11 +90,12 @@ func _decorate_neon(palette: Dictionary) -> void:
 		tube.position = Vector3(0.0, 2.8, 0.35)
 		divider.add_child(tube)
 
-		var halo := MeshInstance3D.new()
-		halo.mesh = halo_mesh
-		halo.material_override = halo_material
-		halo.position = Vector3(0.0, 2.8, 0.5)
-		divider.add_child(halo)
+		if spawn_halos:
+			var halo := MeshInstance3D.new()
+			halo.mesh = halo_mesh
+			halo.material_override = halo_material
+			halo.position = Vector3(0.0, 2.8, 0.5)
+			divider.add_child(halo)
 
 
 func _on_exit_body_entered(body: Node3D) -> void:
