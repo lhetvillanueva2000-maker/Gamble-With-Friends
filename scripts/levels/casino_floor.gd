@@ -20,9 +20,24 @@ const NEON_HALO_SHADER := preload("res://shaders/neon_halo.gdshader")
 @onready var _exit_trigger: Area3D = $Sections/Section04Exit/ExitTrigger
 
 
+## Distance fade: the second culling layer behind the occluders. Anything
+## roughly two sections away fades out even along an open doorway sightline.
+const VISIBILITY_FADE_START := 55.0
+const VISIBILITY_FADE_END := 62.0
+
+
 func _ready() -> void:
 	_exit_trigger.body_entered.connect(_on_exit_body_entered)
 	_apply_floor_palette()
+	_apply_visibility_ranges()
+
+
+func _apply_visibility_ranges() -> void:
+	for node: Node in $Sections.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		mesh.visibility_range_end = VISIBILITY_FADE_END
+		mesh.visibility_range_end_margin = VISIBILITY_FADE_END - VISIBILITY_FADE_START
+		mesh.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 
 ## Everything visual on a floor derives from its GamePalette entry, applied

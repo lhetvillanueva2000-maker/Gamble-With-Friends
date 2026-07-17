@@ -469,6 +469,26 @@ house limit per settlement, no statue insurance on doubled stakes, and a
 heat counter — 3 abuses and the pit boss fixes the table until the floor
 streams fresh.
 
+## Phase 7 — Mobile Optimization, Architecture, & Specs
+
+Full reference: **[docs/PLATFORM_SPECS.md](docs/PLATFORM_SPECS.md)** —
+native-vs-WASM pipeline comparison, transport fallback policy, the
+optimization STOP boundary, and min/recommended hardware tables.
+
+| File | Purpose |
+|---|---|
+| `docs/PLATFORM_SPECS.md` | The Phase 7 reference document |
+| `scripts/autoload/net_session.gd` | (extended) transport fallback: WebRTC for web/cross-play, ENet (UDP) for native-only lobbies, WebSocket TCP last resort |
+| `scripts/optimization/section_activator.gd` | Per-section gate: sleeps cosmetic processing/physics when no player is inside — structurally unable to touch gameplay triggers |
+| `scripts/levels/casino_floor.gd` | (extended) `visibility_range` distance fade on section meshes, second culling layer behind the occluders |
+| `project.godot` | Shadow pipeline fully off (atlas 0), anisotropic filtering off |
+
+The one-line summary of the guardrails: **everything visual is fair game —
+fade it, sleep it, merge it, compress it; nothing that feeds the
+deterministic sim is.** Physics stays 60 Hz on every device, gameplay
+triggers never sleep, TableRng is never used for cosmetics, the bet
+pipeline is never batched or reordered, and money never touches a float.
+
 ### Running it
 
 Open in **Godot 4.3+**, press Play — `main.tscn` boots into the lobby with
