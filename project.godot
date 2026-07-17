@@ -18,6 +18,9 @@ InputSetup="*res://scripts/autoload/input_setup.gd"
 SettingsManager="*res://scripts/autoload/settings_manager.gd"
 FloorStreamer="*res://scripts/autoload/floor_streamer.gd"
 Economy="*res://scripts/autoload/economy.gd"
+NetSession="*res://scripts/autoload/net_session.gd"
+TableRng="*res://scripts/autoload/table_rng.gd"
+BetLedger="*res://scripts/autoload/bet_ledger.gd"
 
 [display]
 

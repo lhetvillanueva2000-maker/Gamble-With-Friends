@@ -385,6 +385,90 @@ if materials are shared and geometry is merged:
 5. **No shadow maps, no glow, no transparency except halos** — the three
    biggest mobile GPU cliffs are simply never entered.
 
+## Phase 6 — Physics, Code Logic, Math, & Mechanics
+
+### What's in this phase
+
+| File | Purpose |
+|---|---|
+| `scripts/autoload/net_session.gd` | WebRTC mesh lifecycle (host/join, signaling hooks, late-join sync) |
+| `scripts/autoload/economy.gd` | (rewritten) host-authoritative shared bank with `@rpc("any_peer","call_local","reliable")` requests + absolute-value authority echoes |
+| `scripts/autoload/table_rng.gd` | Shared deterministic RNG + the 3-deep Time Machine undo buffer |
+| `scripts/autoload/bet_ledger.gd` | Replicated bet record, win streaks, and the restoration rule |
+| `scripts/gambling/quota_math.gd` | The dynamic greed-scaled quota formula |
+| `scripts/gambling/table_game.gd` | Bet lifecycle base: checkpoint → draw → integer settle → replicate |
+| `scripts/gambling/duck_race.gd` + `scripts/items/holy_statue.gd` | The safe-bet multiplier synergy |
+| `scripts/gambling/street_craps.gd` | The double-down timing-bug exploit |
+| `scripts/player/body_state.gd` | Body-part state machine (speed / throw / voice debuffs) |
+
+### Shared bank sync model
+
+Truth lives on the **host (peer 1)**. Any peer *requests* changes via
+`@rpc("any_peer", "call_local", "reliable")`; the request executes on every
+peer but only the host's execution mutates state, then the host broadcasts
+**absolute values** with an authority RPC. Absolute echoes (never deltas)
+make the system self-healing, and a per-request clamp stops a hostile peer
+swinging the bank. Under the default `OfflineMultiplayerPeer` the same RPCs
+run locally, so single-player uses the identical code path. The Phase 4
+`deposit_cash`/`try_spend_tickets` API is unchanged — callers never see
+the network.
+
+### The dynamic quota formula
+
+```
+surplus = max(lifetime_earned − quota_paid, 0)
+quota   = snap50( base · (1 + 0.35 · (surplus / 10 000)^1.25) )
+```
+
+Only *hoarded* surplus counts — cash surrendered to quota stops haunting
+you — and the exponent 1.25 makes punishment superlinear: doubling the
+hoard more than doubles the greed term. Floor 1 examples: surplus 0 →
+$5,000; 10k → $6,750; 50k → $17,550. `Main` applies it on every floor
+arrival and live-updates the HUD quota as cash changes.
+
+### Deterministic seeding & the Time Machine
+
+The host `randomize()`s once and pushes `(seed, state)` to every peer;
+only host-side resolution consumes draws, in strict order, so every peer
+holds an identical RNG at all times. Before each bet the table records a
+checkpoint `(rng.state, cash, tickets, lifetime, quota_paid)` into a
+3-deep ring buffer. Triggering the Time Machine asks the host
+(`any_peer` RPC), which broadcasts the authoritative restore: `rng.state`
+rewinds so the erased bet's dice "return to the deck", wallets snap back,
+and each peer pops its buffer exactly once (host included, via
+`call_local`).
+
+### Meat Grinder consequences & restoration
+
+Avatars with a `BodyState` child are now shredded **one part at a time**
+(legs $350 → arms $200 each → head $450) and ejected alive; only the last
+part costs the avatar. Debuffs are computed properties the controller
+reads: `speed_multiplier` (0.45 legless), `throw_multiplier` (halved per
+arm), `voice_modulated` (head = ring-mod flag). **Restoration:** a
+*healthy* teammate winning **3 consecutive table bets** (tracked by the
+replicated BetLedger, so it needs no extra sync) restores one part on the
+most-damaged crew member, head first, and the streak is spent.
+
+### Exploits & synergies (designed, discovered, contained)
+
+**Holy Statue + Duck Race.** For any table, EV with loss-refund `r`:
+`EV = p(m−1)s − (1−p)(1−r)s`, break-even at `r* = 1 − p(m−1)/(1−p)`.
+The Duck Race (p=0.25, m=4) is the casino's only *fair* table, which makes
+`r* = 0` — **any** refund tips it strictly positive: `EV = 0.75·r·s`
+(+45% of stake per race at r=0.6). Containment: statue charges burn per
+blessed loss; `table_max_payout` caps single wins.
+
+**Street Craps double-down.** 2d6 vs 2d6, house wins ties:
+`P(tie) = 146/1296 ≈ 0.1127` → 11.3% house edge. The deliberate bug: a
+0.25 s settling window in which `double_down()` re-settles the **same
+roll** on a fresh stake with no new RNG draw — watch the dice, double only
+into wins, loop. It's implemented as a *timing* bug on purpose: balances
+are integer math everywhere, because a genuine float-precision error would
+drift differently per platform and desync the lockstep. Containment:
+house limit per settlement, no statue insurance on doubled stakes, and a
+heat counter — 3 abuses and the pit boss fixes the table until the floor
+streams fresh.
+
 ### Running it
 
 Open in **Godot 4.3+**, press Play — `main.tscn` boots into the lobby with

@@ -23,6 +23,10 @@ const MIN_RIDE_SEC := 4.0
 @onready var _world: Node3D = $World
 @onready var _hud: Hud = $UI/HUD
 
+## Quota target for the floor currently being played (0 = not on a floor).
+## Scaled by QuotaMath from the floor's base quota and the crew's hoard.
+var _quota_target := 0
+
 
 func _ready() -> void:
 	Economy.cash_changed.connect(_on_cash_changed)
@@ -44,8 +48,15 @@ func _on_level_swapped(_path: String, level: Node) -> void:
 
 	var casino_floor := level as CasinoFloor
 	if casino_floor != null:
-		_hud.set_quota(0, casino_floor.quota_target)
+		# Dynamic quota: the floor's base target inflated by the crew's
+		# hoarded surplus — earning too much makes the house greedier.
+		_quota_target = QuotaMath.scaled_quota(
+			casino_floor.quota_target, Economy.lifetime_earned, Economy.quota_paid
+		)
+		_hud.set_quota(Economy.cash, _quota_target)
 		casino_floor.exit_requested.connect(_on_floor_exit_requested)
+	else:
+		_quota_target = 0
 
 
 func _on_limo_departed(destination_path: String) -> void:
@@ -69,6 +80,8 @@ func _on_limo_departed(destination_path: String) -> void:
 
 func _on_cash_changed(balance: int) -> void:
 	_hud.set_bank_balance(balance)
+	if _quota_target > 0:
+		_hud.set_quota(balance, _quota_target)
 
 
 func _on_floor_exit_requested() -> void:
