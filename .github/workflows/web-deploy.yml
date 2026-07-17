@@ -43,6 +43,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Link export templates into the runner HOME
+        # The image ships templates under /root, but Actions container jobs
+        # run with HOME=/github/home — Godot looks there.
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          ln -sfn /root/.local/share/godot/export_templates/4.3.stable \
+            "$HOME/.local/share/godot/export_templates/4.3.stable"
+
       - name: Import project (generate .godot cache)
         run: godot --headless --path . --import || true
 
@@ -79,6 +87,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Enable Pages on first run
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
