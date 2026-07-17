@@ -59,7 +59,18 @@ jobs:
             echo "::warning::No ANDROID_KEYSTORE_* secrets configured - producing a DEBUG-signed APK (installable for testing, not store-ready)."
           fi
 
-      - name: Ensure the editor knows the Android SDK path
+      - name: Link export templates into the runner HOME
+        # The image ships templates under /root, but Actions container jobs
+        # run with HOME=/github/home — Godot looks there.
+        run: |
+          ls /root/.local/share/godot/export_templates/
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          ln -sfn /root/.local/share/godot/export_templates/4.3.stable \
+            "$HOME/.local/share/godot/export_templates/4.3.stable"
+
+      - name: Configure editor paths (Android SDK + Java SDK)
+        # Godot 4.3 requires BOTH export/android/android_sdk_path and
+        # export/android/java_sdk_path in editor settings.
         run: |
           SDK_PATH="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           if [ -z "$SDK_PATH" ]; then
@@ -67,30 +78,34 @@ jobs:
               [ -d "$c" ] && SDK_PATH="$c" && break
             done
           fi
-          echo "Android SDK: ${SDK_PATH:-<image default>}"
+          JAVA_PATH="${JAVA_HOME:-$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")}"
+          echo "Android SDK: $SDK_PATH | Java SDK: $JAVA_PATH"
           mkdir -p ~/.config/godot
-          if ! ls ~/.config/godot/editor_settings-4*.tres >/dev/null 2>&1 && [ -n "$SDK_PATH" ]; then
-            for f in editor_settings-4.tres editor_settings-4.3.tres; do
-              printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\n' "$SDK_PATH" > ~/.config/godot/$f
-            done
-          fi
+          for f in editor_settings-4.tres editor_settings-4.3.tres; do
+            printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' \
+              "$SDK_PATH" "$JAVA_PATH" > ~/.config/godot/$f
+          done
 
       - name: Import project (generate .godot cache)
         run: godot --headless --path . --import || true
 
       - name: Export APK
+        # The GODOT_ANDROID_KEYSTORE_RELEASE_* trio may only exist when all
+        # three are real — a path with empty user/password is a config error.
         env:
-          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: /tmp/release.keystore
-          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
-          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /tmp/debug.keystore
-          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
-          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+          RELEASE_KEYSTORE_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           mkdir -p build/android
           if [ "${{ steps.keys.outputs.mode }}" = "release" ]; then
+            export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=/tmp/release.keystore
+            export GODOT_ANDROID_KEYSTORE_RELEASE_USER="$RELEASE_KEYSTORE_USER"
+            export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$RELEASE_KEYSTORE_PASSWORD"
             godot --headless --path . --export-release "Android" "build/android/${EXPORT_NAME}.apk"
           else
+            export GODOT_ANDROID_KEYSTORE_DEBUG_PATH=/tmp/debug.keystore
+            export GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey
+            export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android
             godot --headless --path . --export-debug "Android" "build/android/${EXPORT_NAME}-debug.apk"
           fi
           ls -lh build/android
