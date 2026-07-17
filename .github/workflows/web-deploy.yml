@@ -1,0 +1,123 @@
+# Workflow 2: Automated Web (HTML5/WebAssembly) Build & Deploy
+# Triggers: every push to main (continuous deploy to GitHub Pages) and
+#           release tags (which additionally push to itch.io via butler).
+#
+# Hosting note: the Web export preset ships with variant/thread_support
+# DISABLED on purpose. Threaded WASM needs SharedArrayBuffer, which needs
+# COOP/COEP headers - GitHub Pages cannot set response headers. The
+# single-threaded build runs everywhere; if you later self-host with
+# proper headers (or add a coi-serviceworker shim in web/), you can flip
+# threads on for a smoother native-like experience.
+#
+# Optional itch.io deploy - configure:
+#   secret BUTLER_API_KEY - from https://itch.io/user/settings/api-keys
+#   repository variable ITCH_TARGET - e.g. "youruser/gamble-with-friends"
+
+name: Web Build & Deploy
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.3"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: web-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-web:
+    name: Export HTML5/WASM
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Link export templates into the runner HOME
+        # The image ships templates under /root, but Actions container jobs
+        # run with HOME=/github/home — Godot looks there.
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          ln -sfn /root/.local/share/godot/export_templates/4.3.stable \
+            "$HOME/.local/share/godot/export_templates/4.3.stable"
+
+      - name: Import project (generate .godot cache)
+        run: godot --headless --path . --import || true
+
+      - name: Export Web build
+        run: |
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html
+
+      - name: Compress build (zip artifact + gzip sidecars)
+        run: |
+          # Pages/itch CDNs apply transfer compression themselves; the
+          # gzip sidecars serve self-hosted nginx/caddy setups
+          # (gzip_static), and the zip is the downloadable artifact.
+          find build/web -type f \( -name '*.wasm' -o -name '*.pck' -o -name '*.js' \) -exec gzip -9 -k {} \;
+          cd build && zip -r ../web-build.zip web && cd ..
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: web-build.zip
+          retention-days: 30
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: build-web
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Enable Pages on first run
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  deploy-itch:
+    name: Push to itch.io (butler)
+    needs: build-web
+    if: startsWith(github.ref, 'refs/tags/v') && vars.ITCH_TARGET != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+
+      - name: Unpack
+        run: unzip -q web-build.zip
+
+      - name: Install butler
+        run: |
+          curl -L -o butler.zip "https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default"
+          unzip -q butler.zip
+          chmod +x butler
+          ./butler -V
+
+      - name: Push HTML5 channel
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: ./butler push web "${{ vars.ITCH_TARGET }}:html5" --userversion "${GITHUB_REF_NAME}"
