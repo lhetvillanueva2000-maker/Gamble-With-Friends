@@ -1,7 +1,122 @@
 # Gamble With Friends — Casino Crawler
 
-A 1–6 player WebRTC P2P casino-crawler adaptation for **Android (native)** and
-**Web (HTML5/WebGL2)**, built on Godot 4's **Compatibility (GLES3)** renderer.
+A 1–6 player **WebRTC P2P** casino-crawler for **Android (native)** and
+**Web (HTML5/WebGL2)**, built on Godot 4's **Compatibility (GLES3)**
+renderer. Ride the limo, beat the quota in 5 minutes, exploit the tables,
+and feed whatever's missing to the Meat Grinder.
+
+*An unofficial fan adaptation inspired by "Gamble with Friends"
+(TENSTACK); not affiliated with or endorsed by the original developers.*
+
+## Quick start (clone-and-run)
+
+```bash
+git clone https://github.com/lhetvillanueva2000-maker/Gamble-With-Friends.git
+```
+
+1. Install **Godot 4.3+** (standard build — no Mono needed).
+2. Open `project.godot`; let the first import finish (generates `.godot/`).
+3. Press **Play**. You'll boot into the lobby with the HUD idle at 5:00.
+
+Default controls: **WASD/arrows** move, **mouse** looks, **LMB** interact/
+bet/throw, **E** pick up/drop, **Tab** scoreboard, **Esc** pause. Touch
+devices get an automatic joystick + button overlay; all keys are
+rebindable in-game (persisted to `user://settings.cfg`).
+
+## Repository structure
+
+```
+Gamble-With-Friends/
+├── project.godot            # Engine config: GLES3, stretch, autoloads
+├── export_presets.cfg       # Android + Web presets (no secrets inside)
+├── icon.svg
+├── assets/                  # Raw art & audio sources (Godot imports them)
+│   ├── audio/  fonts/  models/  textures/
+├── scenes/                  # Composed .tscn scenes
+│   ├── main.tscn            # Composition root (World + persistent UI)
+│   ├── ui/                  # HUD
+│   ├── items/               # Physical props (shop crate, ...)
+│   └── levels/              # Lobby, limo, floors/ (modular casino kit)
+├── scripts/                 # GDScript source, grouped by domain
+│   ├── autoload/            # Singletons: input, settings, streaming,
+│   │                        #   economy, net session, shared RNG, ledger
+│   ├── gambling/            # Table games, quota math
+│   ├── interaction/         # Interactable/Interactor/Carryable/hand
+│   ├── items/  levels/  optimization/  player/  shop/  ui/  visual/
+├── shaders/                 # .gdshader sources (compiled by the engine)
+├── web/                     # Web-specific wrappers (HTML shell, COI shim)
+├── docs/                    # PLATFORM_SPECS.md and friends
+└── .github/workflows/       # CI/CD: android-release.yml, web-deploy.yml
+```
+
+## Building locally
+
+Install export templates once (Editor → Manage Export Templates), then:
+
+```bash
+# Web (single-threaded WASM — runs on any static host)
+mkdir -p build/web
+godot --headless --path . --export-release "Web" build/web/index.html
+python3 -m http.server -d build/web 8060   # test at http://localhost:8060
+
+# Android (debug-signed for local testing)
+mkdir -p build/android
+godot --headless --path . --export-debug "Android" build/android/dev.apk
+
+# Android (release-signed like CI does it)
+export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=~/release.keystore
+export GODOT_ANDROID_KEYSTORE_RELEASE_USER=mykey
+export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=...
+godot --headless --path . --export-release "Android" build/android/GambleWithFriends.apk
+```
+
+## CI/CD
+
+| Workflow | Trigger | Result |
+|---|---|---|
+| `android-release.yml` | push tag `v*` | Signed release APK attached to the GitHub Release |
+| `web-deploy.yml` | push to `main` / tag `v*` | WASM build deployed to GitHub Pages; tags also push to itch.io via butler |
+
+Required configuration: secrets `ANDROID_KEYSTORE_BASE64`,
+`ANDROID_KEYSTORE_USER`, `ANDROID_KEYSTORE_PASSWORD` for Android signing
+(injected via Godot's `GODOT_ANDROID_KEYSTORE_RELEASE_*` env overrides —
+credentials never enter the repo); secret `BUTLER_API_KEY` + repository
+variable `ITCH_TARGET` (e.g. `youruser/gamble-with-friends`) to enable the
+itch.io channel. Enable Pages with source "GitHub Actions" once in repo
+settings.
+
+## Playing together (P2P lobbies)
+
+Sessions are peer-to-peer over a WebRTC mesh — no game server holds state;
+the **host (peer 1) is the authority** for money, RNG, and bets. A tiny
+signaling service (Secure WebSockets, `wss://`) only introduces peers.
+
+**Host:** Play → *Host Lobby*. The client registers with the signaling
+server and displays a **room code**. Share it (up to 5 friends can join).
+
+**Join (Web):** open the game URL in a WebGL2 browser → *Join* → enter the
+room code. The signaling server assigns your peer id and relays SDP/ICE
+blobs; once ICE completes you drop into the host's lobby. HTTPS hosting is
+required (pointer lock + wss are both blocked on insecure pages).
+
+**Join (Android app):** identical flow — full cross-play with browser
+peers. Native-only lobbies on the same LAN can skip signaling entirely and
+use the ENet transport (`NetSession.host_session_enet()` — direct
+UDP, host's IP + port `24565`).
+
+Connectivity notes: peers behind symmetric NAT need a TURN server —
+add it to `NetSession.DEFAULT_ICE_SERVERS` and keep credentials in an
+ignored `ice_servers_local.json`, never in git. The signaling endpoint is
+lobby-UI configuration (Phase 9); `NetSession.add_remote_peer()` exposes
+the SDP/ICE hooks it drives.
+
+## License
+
+GPL-3.0 — see [LICENSE](LICENSE).
+
+---
+
+# Development Log
 
 ## Phase 1 — Input Map & Mobile-Friendly UI Layout
 

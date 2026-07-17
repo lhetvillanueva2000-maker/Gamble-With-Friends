@@ -1,16 +1,56 @@
-# Godot 4 project
+# ============================================================
+# Godot 4 — Gamble With Friends (Casino Crawler)
+# ============================================================
+
+# --- Godot caches (regenerated on import; NEVER commit) -----
 .godot/
-*.import
-export_presets.cfg.secret
-android/build/
+.import/          # Godot 3.x legacy cache, kept for safety
+*.tmp
+
+# NOTE on *.import metadata files: they are COMMITTED on purpose.
+# They pin per-asset import settings (compression mode, mipmaps,
+# normal-map flags) so every teammate and the CI import assets
+# identically. Only the .godot/ CACHE is ignored.
+# *.import        # <- deliberately NOT ignored
+
+# --- Build artifacts ----------------------------------------
+build/
+export/
 *.apk
 *.aab
+*.pck
+*.wasm
+web-build.zip
 
-# Web export output
-build/
+# Android gradle build template (installed locally per-machine)
+android/
 
-# OS / editor cruft
-.DS_Store
-*.tmp
+# --- Signing & credentials (NEVER commit) -------------------
+*.keystore
+*.jks
+*.p12
+*.pepk
+keystore.properties
+
+# Local WebRTC / signaling credentials (TURN passwords, API keys)
+.env
+.env.*
+*.secrets.json
+signaling_credentials.json
+ice_servers_local.json
+export_presets.cfg.secret
+
+# --- Local settings & editor cruft --------------------------
+# (user:// itself lives OUTSIDE the repo — device app storage on
+# Android, IndexedDB on web — so settings.cfg never appears here;
+# these are desktop-editor local overrides.)
+override.cfg
+*.translation~
 .vscode/
 .idea/
+*.swp
+
+# --- OS noise ------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
