@@ -98,6 +98,7 @@ jobs:
             index.audio.worklet.js index.png index.icon.png \
             index.apple-touch-icon.png _headers
           cd ../..
+          command -v curl >/dev/null || (apt-get update -qq && apt-get install -y -qq curl)
           echo "Uploading site zip to Netlify..."
           HTTP_CODE=$(curl -s -o netlify-response.json -w "%{http_code}" \
             -X POST -H "user-agent: netlify-mcp" \
