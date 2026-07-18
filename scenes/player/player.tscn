@@ -1,0 +1,46 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/player/mouse_look.gd" id="2_look"]
+[ext_resource type="Script" path="res://scripts/interaction/interactor.gd" id="3_interactor"]
+[ext_resource type="Script" path="res://scripts/interaction/player_hand.gd" id="4_hand"]
+[ext_resource type="Script" path="res://scripts/player/body_state.gd" id="5_body"]
+
+[sub_resource type="CapsuleShape3D" id="capsule"]
+radius = 0.4
+height = 1.8
+
+[node name="Player" type="CharacterBody3D" groups=["players"]]
+script = ExtResource("1_player")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("capsule")
+
+[node name="Head" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Head"]
+current = true
+fov = 75.0
+
+[node name="Interactor" type="RayCast3D" parent="Head"]
+target_position = Vector3(0, 0, -2.6)
+collide_with_areas = true
+collide_with_bodies = false
+script = ExtResource("3_interactor")
+player = NodePath("../..")
+hand = NodePath("../Hand")
+reach = 2.6
+
+[node name="Hand" type="Node3D" parent="Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, -0.3, -0.7)
+script = ExtResource("4_hand")
+
+[node name="MouseLook" type="Node" parent="."]
+script = ExtResource("2_look")
+yaw_node = NodePath("..")
+pitch_node = NodePath("../Head")
+
+[node name="BodyState" type="Node" parent="."]
+script = ExtResource("5_body")

@@ -20,6 +20,8 @@ extends Node
 ## it sells the transition and guarantees the doors-closed beat.
 const MIN_RIDE_SEC := 4.0
 
+const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
+
 @onready var _world: Node3D = $World
 @onready var _hud: Hud = $UI/HUD
 
@@ -33,6 +35,13 @@ func _ready() -> void:
 	_hud.set_bank_balance(Economy.cash)
 	FloorStreamer.register_level_container(_world)
 	FloorStreamer.level_swapped.connect(_on_level_swapped)
+
+	# Spawn the local player as a persistent sibling of the streamed levels
+	# (it survives every swap_now — only the level node is freed). It joins
+	# the "players" group in _ready, so the level swap below places it on
+	# the lobby's spawn markers. This is the camera into the 3D world.
+	_world.add_child(PLAYER_SCENE.instantiate())
+
 	# The lobby is deliberately tiny (a parking lot of boxes), so a
 	# synchronous load at boot is imperceptible.
 	FloorStreamer.swap_now(FloorStreamer.LOBBY_SCENE)

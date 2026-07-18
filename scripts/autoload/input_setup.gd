@@ -29,6 +29,7 @@ const KEY_ACTIONS: Dictionary = {
 	&"move_back": [KEY_S, KEY_DOWN],
 	&"move_left": [KEY_A, KEY_LEFT],
 	&"move_right": [KEY_D, KEY_RIGHT],
+	&"jump": [KEY_SPACE],
 	&"action_pickup": [KEY_E],
 	&"menu_pause": [KEY_ESCAPE],
 	&"menu_scoreboard": [KEY_TAB],
