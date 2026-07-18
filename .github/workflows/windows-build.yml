@@ -1,0 +1,83 @@
+# Workflow 3: Windows Desktop Build
+#
+# Exports a single self-contained Windows .exe (game data embedded via
+# binary_format/embed_pck) that runs by double-clicking — no installer,
+# no admin rights, nothing written to the system. Trigger from the
+# Actions tab ("Run workflow") or on a v* release tag.
+#
+# The build runs in the barichello/godot-ci image, which bundles the
+# Windows export templates alongside the editor.
+
+name: Windows Build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  EXPORT_NAME: GambleWithFriends
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Export Windows .exe
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Link export templates into the runner HOME
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          ln -sfn /root/.local/share/godot/export_templates/4.3.stable \
+            "$HOME/.local/share/godot/export_templates/4.3.stable"
+
+      - name: Import project (generate .godot cache)
+        run: godot --headless --path . --import || true
+
+      - name: Export Windows release .exe
+        run: |
+          mkdir -p build/windows
+          godot --headless --path . --export-release "Windows Desktop" "build/windows/${EXPORT_NAME}.exe"
+          ls -lh build/windows
+
+      - name: Package the .exe with a readme
+        run: |
+          cd build/windows
+          cat > HOW-TO-RUN.txt <<'TXT'
+          GAMBLE WITH FRIENDS - CASINO CRAWLER (Windows)
+
+          There is nothing to install. Double-click GambleWithFriends.exe
+          to play. All game data is embedded inside the single .exe.
+
+          First launch: Windows SmartScreen may show a blue "Windows
+          protected your PC" box because the .exe is not code-signed
+          (signing needs a paid certificate). Click "More info", then
+          "Run anyway". This is expected for unsigned indie builds.
+
+          This is the Phase 1-9 framework build: boot splash, device
+          profiling, lobby (shop truck / meat grinder / limo), streamed
+          casino floors and HUD. There is no player controller yet, so it
+          showcases the world and UI rather than a walkable game.
+          TXT
+          zip -j "${EXPORT_NAME}-windows.zip" "${EXPORT_NAME}.exe" HOW-TO-RUN.txt
+          ls -lh
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: build/windows/*.zip
+          retention-days: 30
+
+      - name: Attach to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: build/windows/*.zip
+          generate_release_notes: true
