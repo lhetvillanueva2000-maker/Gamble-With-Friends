@@ -20,6 +20,15 @@ on:
     branches: [main]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      netlify_upload_url:
+        description: >-
+          Optional: Netlify MCP proxy builds-endpoint URL. When set, the
+          built site is zipped (with COOP/COEP _headers) and uploaded
+          there. Mint via the Netlify MCP deploy-site operation; tokens
+          expire in ~30 minutes.
+        required: false
+        default: ""
 
 env:
   GODOT_VERSION: "4.3"
@@ -78,6 +87,25 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
+
+      - name: Deploy to Netlify (manual dispatch with upload URL only)
+        if: github.event_name == 'workflow_dispatch' && inputs.netlify_upload_url != ''
+        run: |
+          cd build/web
+          printf '/*\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n' > _headers
+          zip -q ../../netlify-site.zip \
+            index.html index.js index.wasm index.pck \
+            index.audio.worklet.js index.png index.icon.png \
+            index.apple-touch-icon.png _headers
+          cd ../..
+          echo "Uploading site zip to Netlify..."
+          HTTP_CODE=$(curl -s -o netlify-response.json -w "%{http_code}" \
+            -X POST -H "user-agent: netlify-mcp" \
+            -F "zip=@netlify-site.zip;type=application/zip;filename=deploy.zip" \
+            "${{ inputs.netlify_upload_url }}")
+          echo "Netlify responded: $HTTP_CODE"
+          cat netlify-response.json
+          [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]
 
   deploy-pages:
     name: Deploy to GitHub Pages
